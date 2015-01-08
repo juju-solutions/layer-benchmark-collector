@@ -1,0 +1,15 @@
+name: collectd
+summary: A daemon that collects system performance metrics.
+maintainer: Adam Israel <adam.israel@canonical.com>
+description: |
+  collectd is a daemon that collects system statistics periodically.
+categories:
+  - misc
+subordinate: true
+requires:
+  collectd:
+    interface: juju-info
+    scope: container
+provides:
+  carbon:
+      interface: carbon

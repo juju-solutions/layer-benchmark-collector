@@ -1,0 +1,5 @@
+options:
+  plugins:
+    type: string
+    default: "cpu,disk,memory,network"
+    description: "A list of individual plugins, comma separated, to collect metrics for."
