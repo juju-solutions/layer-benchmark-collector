@@ -28,11 +28,27 @@ log = hookenv.log
 
 SERVICE = 'collectd'
 
+
 @hooks.hook('install')
 def install():
     log('Installing collectd')
     install_packages()
     config_changed()
+
+
+@hooks.hook('collectd-joined', 'collectd-changed')
+def collectd_changed():
+    hostname = hookenv.relation_get('host')
+    port = hookenv.relation_get('port')
+    if hostname and port:
+        enable_graphite(hostname, port)
+        start()
+
+
+@hooks.hook('collectd-departed')
+def collectd_departed():
+    os.remove('/etc/collectd/collectd.conf.d/graphite.conf')
+    start()
 
 
 @hooks.hook('config-changed')
@@ -46,12 +62,10 @@ def config_changed():
 
     # Write active plugins
     if config.changed('plugins'):
-        log(config['plugins'])
         plugins = []
         for plugin in config['plugins'].split(','):
             if len(plugin.strip()):
                 plugins.append(plugin)
-        log(plugins)
         template_path = "{0}/templates/plugins.tmpl".format(
             hookenv.charm_dir())
 
@@ -82,6 +96,17 @@ def stop():
 def install_packages():
     apt_update(fatal=True)
     apt_install(packages=['collectd'], fatal=True)
+
+
+def enable_graphite(host, port):
+    # Enable/configure whisper plugin
+    template_path = "{0}/templates/plugin-graphite.tmp".format(
+        hookenv.charm_dir())
+
+    host.write_file(
+        '/etc/collectd/collectd.conf.d/graphite.conf',
+        Template(open(template_path).read()).render(host=host, port=port)
+    )
 
 
 if __name__ == "__main__":
