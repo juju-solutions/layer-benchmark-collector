@@ -8,8 +8,8 @@ d = amulet.Deployment()
 d.add('collectd')
 d.expose('collectd')
 
-d.add('postgresql')
-d.relate('collectd', 'postgresql')
+# d.add('postgresql')
+# d.relate('collectd', 'postgresql')
 
 try:
     d.setup(timeout=900)
