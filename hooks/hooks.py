@@ -28,11 +28,11 @@ log = hookenv.log
 
 SERVICE = 'collectd'
 
-
 @hooks.hook('install')
 def install():
     log('Installing collectd')
     install_packages()
+    config_changed()
 
 
 @hooks.hook('config-changed')
@@ -43,6 +43,22 @@ def config_changed():
         if config.changed(key):
             log("config['{}'] changed from {} to {}".format(
                 key, config.previous(key), config[key]))
+
+    # Write active plugins
+    if config.changed('plugins'):
+        log(config['plugins'])
+        plugins = []
+        for plugin in config['plugins'].split(','):
+            if len(plugin.strip()):
+                plugins.append(plugin)
+        log(plugins)
+        template_path = "{0}/templates/plugins.tmpl".format(
+            hookenv.charm_dir())
+
+        host.write_file(
+            '/etc/collectd/collectd.conf.d/plugins.conf',
+            Template(open(template_path).read()).render(plugins=plugins)
+        )
 
     config.save()
     start()
