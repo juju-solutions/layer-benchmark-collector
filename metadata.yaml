@@ -11,5 +11,5 @@ requires:
     interface: juju-info
     scope: container
 provides:
-  carbon:
-      interface: carbon
+  cabs-metrics:
+      interface: cabs-metrics
