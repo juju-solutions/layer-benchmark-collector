@@ -97,6 +97,11 @@ def config_changed():
             '/etc/collectd/collectd.conf.d/plugins.conf',
             Template(open(template_path).read()).render(plugins=plugins)
         )
+    if config.changed('extra-config'):
+        host.write_file(
+            '/etc/collectd/collectd.conf.d/extra.conf',
+            config['extra-config']
+        )
 
     config.save()
     start()
