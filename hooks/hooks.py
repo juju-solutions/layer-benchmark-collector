@@ -36,43 +36,55 @@ def install():
     config_changed()
 
 
-@hooks.hook('cabs-metrics-joined', 'cabs-metrics-changed')
-def cabs_metrics_changed():
+@hooks.hook('collector-joined', 'collector-changed')
+def collector_changed():
     hostname = hookenv.relation_get('host')
     port = hookenv.relation_get('port')
-    plugin = hookenv.relation_get('plugin')
-    config = hookenv.relation_get('config')
 
-    if hostname and port and plugin and config:
-        template_path = "{0}/templates/plugin.tmpl".format(
-            hookenv.charm_dir())
-
-        host.write_file(
-            '/etc/collectd/collectd.conf.d/{0}.conf'.format(plugin),
-            Template(open(template_path).read()).render(
-                plugin=plugin, config=config, host=host, port=port)
+    if 'JUJU_REMOTE_UNIT' in os.environ:
+        unit_name = "unit-{0}".format(
+            os.environ['JUJU_REMOTE_UNIT'].replace('/', '-')
         )
 
+        if hostname and port:
+            enable_graphite(hostname, port, unit_name)
+            start()
 
-@hooks.hook('cabs-metrics-departed')
-def cabs_metrics_departed():
-    plugin = hookenv.relation_get('plugin')
-    os.remove('/etc/collectd/collectd.conf.d/{0}.conf'.format(plugin))
+    # hostname = hookenv.relation_get('host')
+    # port = hookenv.relation_get('port')
+    # plugin = hookenv.relation_get('plugin')
+    # config = hookenv.relation_get('config')
+    #
+    # if hostname and port and plugin and config:
+    #     template_path = "{0}/templates/plugin.tmpl".format(
+    #         hookenv.charm_dir())
+    #
+    #     host.write_file(
+    #         '/etc/collectd/collectd.conf.d/{0}.conf'.format(plugin),
+    #         Template(open(template_path).read()).render(
+    #             plugin=plugin, config=config, host=host, port=port)
+    #     )
+    #
+
+
+@hooks.hook('collector-departed')
+def collector_departed():
+    os.remove('/etc/collectd/collectd.conf.d/graphite.conf')
+    start()
+    # plugin = hookenv.relation_get('plugin')
+    # os.remove('/etc/collectd/collectd.conf.d/{0}.conf'.format(plugin))
 
 
 @hooks.hook('collectd-joined', 'collectd-changed')
 def collectd_changed():
-    hostname = hookenv.relation_get('host')
-    port = hookenv.relation_get('port')
-    if hostname and port:
-        enable_graphite(hostname, port)
-        start()
+    pass
 
 
 @hooks.hook('collectd-departed')
 def collectd_departed():
-    os.remove('/etc/collectd/collectd.conf.d/graphite.conf')
-    start()
+    # os.remove('/etc/collectd/collectd.conf.d/graphite.conf')
+    # start()
+    pass
 
 
 @hooks.hook('config-changed')
@@ -127,14 +139,18 @@ def install_packages():
     apt_install(packages=['collectd'], fatal=True)
 
 
-def enable_graphite(host, port):
+def enable_graphite(hostname, port, unit_name):
     # Enable/configure whisper plugin
     template_path = "{0}/templates/plugin-graphite.tmp".format(
         hookenv.charm_dir())
 
     host.write_file(
         '/etc/collectd/collectd.conf.d/graphite.conf',
-        Template(open(template_path).read()).render(host=host, port=port)
+        Template(open(template_path).read()).render(
+            host=hostname,
+            port=port,
+            unit=unit_name
+        )
     )
 
 
