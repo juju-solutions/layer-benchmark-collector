@@ -5,8 +5,7 @@ LoadPlugin write_graphite
 		Port "{{ port }}"
 		Protocol "tcp"
 		LogSendErrors true
-		Prefix "collectd"
-		Postfix "collectd"
+		Prefix "{{ unit }}."
 		StoreRates true
 		AlwaysAppendDS false
 		EscapeCharacter "_"
