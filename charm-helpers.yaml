@@ -1,5 +1,6 @@
 destination: lib/charmhelpers
 branch: lp:charm-helpers
 include:
+  - __init__
   - core
   - fetch
