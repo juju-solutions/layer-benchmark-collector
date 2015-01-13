@@ -3,23 +3,77 @@
 import amulet
 import requests
 
-d = amulet.Deployment()
+d = amulet.Deployment(series='trusty')
 
 d.add('collectd')
-d.expose('collectd')
+d.add('mysql')
+d.add('mediawiki')
 
-# d.add('postgresql')
-# d.relate('collectd', 'postgresql')
+# Set mysql memory for running under the local provider
+d.configure('mysql', {'dataset-size': '512M'})
+
+d.relate('mediawiki:db', 'mysql:db')
+d.relate('collectd:collectd', 'mediawiki:juju-info')
+d.relate('collectd:collectd', 'mysql:juju-info')
+
 
 try:
-    d.setup(timeout=900)
+    d.setup(timeout=3600)
     d.sentry.wait()
 except amulet.helpers.TimeoutError:
     amulet.raise_status(amulet.SKIP, msg="Environment wasn't stood up in time")
 except:
     raise
 
-unit = d.sentry.unit['collectd/0']
+# Once everything is deployed, configure collection.
+mediawiki = d.sentry.unit['mediawiki/0']
+mysql = d.sentry.unit['mysql/0']
+
+# TODO: Do one run to get the file and parse it.
+# Need to get the db configuration from mediawiki
+dbhost, code = mediawiki.run("cat /etc/mediawiki/LocalSettings.php \
+        | grep wgDBserver | awk '{printf $3}'")
+dbname, code = mediawiki.run("cat /etc/mediawiki/LocalSettings.php \
+        | grep wgDBname | awk '{printf $3}'")
+dbuser, code = mediawiki.run("cat /etc/mediawiki/LocalSettings.php \
+        | grep wgDBuser | awk '{printf $3}'")
+dbpasswd, code = mediawiki.run("cat /etc/mediawiki/LocalSettings.php \
+        | grep wgDBpassword | awk '{printf $3}'")
+
+# $wgDBserver         = "10.0.3.72";
+# $wgDBname           = "mediawiki";
+# $wgDBuser           = "thaedouyahlahdi";
+# $wgDBpassword       = "laemaiteekaezae";
+
+d.configure('collectd', {
+    'plugins': 'cpu,memory,disk,dbi,apache',
+    'extra-config': """
+        <Plugin disk>
+            Disk "sda"
+            IgnoreSelected false
+        </Plugin>
+        <Plugin dbi>
+            <Database "customers_db">
+                Driver "mysql"
+                DriverOption "host" "{0}"
+                DriverOption "username" "{1}"
+                DriverOption "password" "{2}"
+                DriverOption "dbname" "{3}"
+                SelectDB "{3}"
+                Query "num_of_customers"
+            </Database>
+        </Plugin>
+        <Plugin apache>
+            <Instance "mediawiki">
+                URL "http://localhost/server-status?auto"
+                Server "apache"
+            </Instance>
+        </Plugin>
+    """.format(mysql.info['public-address'], dbhost, dbuser, dbpasswd, dbname)
+})
+
+d.expose('collectd')
+
 
 # # test we can access over http
 # page = requests.get('http://{}'.format(unit.info['public-address']))
