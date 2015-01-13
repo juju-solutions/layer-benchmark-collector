@@ -7,8 +7,8 @@ This subordinate charm allows for the collection of system and application metri
     juju deploy collectd
     juju deploy mysql
     juju deploy mediawiki
-    juju add-relation collectd mysql
-    juju add-relation collectd mediawiki
+    juju add-relation collectd:juju-info mysql:juju-info
+    juju add-relation collectd:juju-info mediawiki:juju-info
     juju set plugins "cpu,memory,disk,dbi,apache"
     juju set extra-config "..."
 
