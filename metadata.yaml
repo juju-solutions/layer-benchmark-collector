@@ -11,5 +11,5 @@ requires:
     interface: juju-info
     scope: container
 provides:
-  cabs-metrics:
+  collector:
       interface: cabs-metrics
