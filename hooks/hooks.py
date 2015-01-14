@@ -36,19 +36,22 @@ def install():
     config_changed()
 
 
-@hooks.hook('collector-joined', 'collector-changed')
+@hooks.hook('collector-relation-joined', 'collector-relation-changed')
 def collector_changed():
-    hostname = hookenv.relation_get('host')
+    hostname = hookenv.relation_get('hostname')
     port = hookenv.relation_get('port')
 
-    if 'JUJU_REMOTE_UNIT' in os.environ:
+    if 'JUJU_UNIT_NAME' in os.environ:
+        log('Setting up graphite')
         unit_name = "unit-{0}".format(
-            os.environ['JUJU_REMOTE_UNIT'].replace('/', '-')
+            os.environ['JUJU_UNIT_NAME'].replace('/', '-')
         )
 
         if hostname and port:
             enable_graphite(hostname, port, unit_name)
             start()
+    else:
+        log('Unable to get JUJU_UNIT_NAME')
 
     # hostname = hookenv.relation_get('host')
     # port = hookenv.relation_get('port')
@@ -67,10 +70,11 @@ def collector_changed():
     #
 
 
-@hooks.hook('collector-departed')
+@hooks.hook('collector-relation-departed')
 def collector_departed():
-    os.remove('/etc/collectd/collectd.conf.d/graphite.conf')
-    start()
+    if os.path.exists('/etc/collectd/collectd.conf.d/graphite.conf'):
+        os.remove('/etc/collectd/collectd.conf.d/graphite.conf')
+        start()
     # plugin = hookenv.relation_get('plugin')
     # os.remove('/etc/collectd/collectd.conf.d/{0}.conf'.format(plugin))
 
@@ -141,7 +145,7 @@ def install_packages():
 
 def enable_graphite(hostname, port, unit_name):
     # Enable/configure whisper plugin
-    template_path = "{0}/templates/plugin-graphite.tmp".format(
+    template_path = "{0}/templates/graphite.tmpl".format(
         hookenv.charm_dir())
 
     host.write_file(
