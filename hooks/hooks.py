@@ -51,7 +51,7 @@ def collector_changed():
             enable_graphite(hostname, port, unit_name)
             start()
     else:
-        log('Unable to get JUJU_UNIT_NAME')
+        log('Unable to get JUJU_UNIT_NAME ')
 
     # hostname = hookenv.relation_get('host')
     # port = hookenv.relation_get('port')
@@ -150,7 +150,7 @@ def enable_graphite(hostname, port, unit_name):
 
     host.write_file(
         '/etc/collectd/collectd.conf.d/graphite.conf',
-        Template(open(template_path).read()).render(
+        Template(open(template_path).read(), keep_trailing_newline=True).render(
             host=hostname,
             port=port,
             unit=unit_name
