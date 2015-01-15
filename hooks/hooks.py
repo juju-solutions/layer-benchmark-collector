@@ -116,7 +116,7 @@ def config_changed():
     if config.changed('extra-config'):
         host.write_file(
             '/etc/collectd/collectd.conf.d/extra.conf',
-            config['extra-config']
+            "%s\n" % config['extra-config']
         )
 
     config.save()
