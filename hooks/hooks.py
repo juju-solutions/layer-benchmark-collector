@@ -29,14 +29,12 @@ log = hookenv.log
 SERVICE = 'collectd'
 
 
-@hooks.hook('install')
 def install():
     log('Installing collectd')
     install_packages()
     config_changed()
 
 
-@hooks.hook('collector-relation-joined', 'collector-relation-changed')
 def collector_changed():
     hostname = hookenv.relation_get('hostname')
     port = hookenv.relation_get('port')
@@ -53,45 +51,13 @@ def collector_changed():
     else:
         log('Unable to get JUJU_UNIT_NAME ')
 
-    # hostname = hookenv.relation_get('host')
-    # port = hookenv.relation_get('port')
-    # plugin = hookenv.relation_get('plugin')
-    # config = hookenv.relation_get('config')
-    #
-    # if hostname and port and plugin and config:
-    #     template_path = "{0}/templates/plugin.tmpl".format(
-    #         hookenv.charm_dir())
-    #
-    #     host.write_file(
-    #         '/etc/collectd/collectd.conf.d/{0}.conf'.format(plugin),
-    #         Template(open(template_path).read()).render(
-    #             plugin=plugin, config=config, host=host, port=port)
-    #     )
-    #
 
-
-@hooks.hook('collector-relation-departed')
 def collector_departed():
     if os.path.exists('/etc/collectd/collectd.conf.d/graphite.conf'):
         os.remove('/etc/collectd/collectd.conf.d/graphite.conf')
         start()
-    # plugin = hookenv.relation_get('plugin')
-    # os.remove('/etc/collectd/collectd.conf.d/{0}.conf'.format(plugin))
 
 
-@hooks.hook('collectd-joined', 'collectd-changed')
-def collectd_changed():
-    pass
-
-
-@hooks.hook('collectd-departed')
-def collectd_departed():
-    # os.remove('/etc/collectd/collectd.conf.d/graphite.conf')
-    # start()
-    pass
-
-
-@hooks.hook('config-changed')
 def config_changed():
     config = hookenv.config()
 
@@ -123,17 +89,16 @@ def config_changed():
     start()
 
 
-@hooks.hook('upgrade-charm')
 def upgrade_charm():
     log('Upgrading collectd')
+    install_packages()
+    config_changed()
 
 
-@hooks.hook('start')
 def start():
     host.service_restart(SERVICE) or host.service_start(SERVICE)
 
 
-@hooks.hook('stop')
 def stop():
     host.service_stop(SERVICE)
 
