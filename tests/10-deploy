@@ -60,7 +60,7 @@ d.configure('collectd', {
                 DriverOption "password" "{2}"
                 DriverOption "dbname" "{3}"
                 SelectDB "{3}"
-                Query "num_of_customers"
+                Query "select count(*) from logging"
             </Database>
         </Plugin>
         <Plugin apache>
