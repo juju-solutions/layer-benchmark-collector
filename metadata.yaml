@@ -3,7 +3,7 @@ summary: A daemon that collects system performance metrics.
 maintainer: Adam Israel <adam.israel@canonical.com>
 description: |
   collectd is a daemon that collects system statistics periodically.
-categories:
+tags:
   - misc
 subordinate: true
 requires:
