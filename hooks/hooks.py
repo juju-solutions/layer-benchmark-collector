@@ -111,7 +111,7 @@ def config_changed():
 
         host.write_file(
             '/etc/collectd/collectd.conf.d/plugins.conf',
-            Template(open(template_path).read()).render(plugins=plugins)
+            Template(open(template_path).read(), keep_trailing_newline=True).render(plugins=plugins)
         )
     if config.changed('extra-config'):
         host.write_file(
