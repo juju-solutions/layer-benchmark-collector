@@ -2,6 +2,8 @@
 
 import os
 import sys
+import subprocess
+import shlex
 
 sys.path.insert(0, os.path.join(os.environ['CHARM_DIR'], 'lib'))
 
@@ -39,23 +41,53 @@ def collector_changed():
     hostname = hookenv.relation_get('hostname')
     port = hookenv.relation_get('port')
 
+    # We need to get the name of the unit in the collectd relation
     if 'JUJU_UNIT_NAME' in os.environ:
         log('Setting up graphite')
-        unit_name = "unit-{0}".format(
-            os.environ['JUJU_UNIT_NAME'].replace('/', '-')
+
+        relations = hookenv.related_units(
+            os.environ['JUJU_UNIT_NAME'].replace('/', ':')
         )
 
-        if hostname and port:
-            enable_graphite(hostname, port, unit_name)
-            start()
+        if relations:
+            relation = relations[0]
+            unit_name = "unit-{0}".format(
+                relation.replace('/', '-')
+            )
+
+            if hostname and port:
+                enable_graphite(hostname, port, unit_name)
+                start()
     else:
-        log('Unable to get JUJU_UNIT_NAME ')
+        log('Unable to get JUJU_UNIT_NAME')
 
 
 def collector_departed():
     if os.path.exists('/etc/collectd/collectd.conf.d/graphite.conf'):
         os.remove('/etc/collectd/collectd.conf.d/graphite.conf')
         start()
+
+
+def collectd_changed():
+    # Trigger profile collection
+    cmds = [
+        'dpkg -l',
+        'lspci',
+        'lsusb',
+        'pip --list',
+        'gem list --local',
+    ]
+
+    for cmd in cmds:
+        try:
+            output = subprocess.check_output(shlex.split(cmd))
+            log(output)
+        except subprocess.CalledProcessError:
+            log('Could not execute command: %s' % cmd)
+        except IOError:
+            log('Could not execute command: %s' % cmd)
+        except OSError:
+            log('Could not execute command: %s' % cmd)
 
 
 def config_changed():
