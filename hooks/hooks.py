@@ -39,17 +39,24 @@ def collector_changed():
     hostname = hookenv.relation_get('hostname')
     port = hookenv.relation_get('port')
 
-    if 'JUJU_UNIT_NAME' in os.environ:
+    # We need to get the name of the unit in the collectd relation
+    if hostname and port and 'JUJU_UNIT_NAME' in os.environ:
         log('Setting up graphite')
-        unit_name = "unit-{0}".format(
-            os.environ['JUJU_UNIT_NAME'].replace('/', '-')
+
+        relations = hookenv.related_units(
+            os.environ['JUJU_UNIT_NAME'].replace('/', ':')
         )
 
-        if hostname and port:
+        if relations:
+            relation = relations[0]
+            unit_name = "unit-{0}".format(
+                relation.replace('/', '-')
+            )
+
             enable_graphite(hostname, port, unit_name)
             start()
     else:
-        log('Unable to get JUJU_UNIT_NAME ')
+        log('Unable to get JUJU_UNIT_NAME')
 
 
 def collector_departed():
