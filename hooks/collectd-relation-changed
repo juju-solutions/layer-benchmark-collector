@@ -1,0 +1,3 @@
+#!/usr/bin/env python
+import hooks
+hooks.collectd_changed()
