@@ -4,6 +4,8 @@ import os
 import sys
 import subprocess
 import shlex
+import json
+import re
 
 sys.path.insert(0, os.path.join(os.environ['CHARM_DIR'], 'lib'))
 
@@ -23,6 +25,13 @@ except ImportError:
     apt_update(fatal=True)
     apt_install(['python-jinja2'], fatal=True)
     from jinja2 import Template
+
+try:
+    import requests
+except ImportError:
+    apt_update(fatal=True)
+    apt_install(['python-requests'], fatal=True)
+    import requests
 
 
 hooks = hookenv.Hooks()
@@ -70,24 +79,71 @@ def collector_departed():
 
 def collectd_changed():
     # Trigger profile collection
-    cmds = [
-        'dpkg -l',
-        'lspci',
-        'lsusb',
-        'pip --list',
-        'gem list --local',
-    ]
+    collect_profile_data()
 
-    for cmd in cmds:
-        try:
-            output = subprocess.check_output(shlex.split(cmd))
-            log(output)
-        except subprocess.CalledProcessError:
-            log('Could not execute command: %s' % cmd)
-        except IOError:
-            log('Could not execute command: %s' % cmd)
-        except OSError:
-            log('Could not execute command: %s' % cmd)
+
+def collect_profile_data():
+    # cmds = [
+    #     'dpkg -l',
+    #     # 'lspci',
+    #     # 'lsusb',
+    #     'pip --list',
+    #     'gem list --local',
+    # ]
+
+    config = hookenv.config()
+
+    if(config['collector-web-host']):
+        lshw = run_command('lshw -json')
+        url = "http://%s:%d/api/units/%s" % (config['collector-web-host'], config['collector-web-port'], os.environ['JUJU_UNIT_NAME'])
+        log(url)
+
+        data = {}
+        data['dpkg'] = parse_dpkg()
+        data['lshw'] = json.loads(lshw)
+        requests.post(url, data=json.dumps(data))
+
+
+def parse_dpkg():
+    """
+    Parse the output of `dpkg -l` to build a list of installed packages
+    and their version/architecture.
+    """
+    packages = []
+    output = run_command('dpkg -l')
+    p = re.compile('\s+')
+    for line in output.split('\n'):
+        fields = p.split(line)
+        if(len(fields) >= 4):
+            status = fields[0]
+            if (status == 'ii'):
+                name = fields[1]
+                version = fields[2]
+                arch = fields[3]
+                desc = " ".join(fields[4:])
+                package = {
+                    'status': status,
+                    'name': name,
+                    'arch': arch,
+                    'version': version,
+                    'desc': desc,
+                }
+                packages.append(package)
+    return packages
+
+
+def run_command(cmd):
+    output = None
+    try:
+        output = subprocess.check_output(shlex.split(cmd))
+        log(output)
+    except subprocess.CalledProcessError:
+        log('Could not execute command: %s' % cmd)
+    except IOError:
+        log('Could not execute command: %s' % cmd)
+    except OSError:
+        log('Could not execute command: %s' % cmd)
+    return output
 
 
 def config_changed():
