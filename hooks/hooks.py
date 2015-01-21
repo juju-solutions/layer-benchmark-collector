@@ -83,20 +83,15 @@ def collectd_changed():
 
 
 def collect_profile_data():
-    # cmds = [
-    #     'dpkg -l',
-    #     # 'lspci',
-    #     # 'lsusb',
-    #     'pip --list',
-    #     'gem list --local',
-    # ]
-
     config = hookenv.config()
 
     if(config['collector-web-host']):
         lshw = run_command('lshw -json')
-        url = "http://%s:%d/api/units/%s" % (config['collector-web-host'], config['collector-web-port'], os.environ['JUJU_UNIT_NAME'])
-        log(url)
+        url = "http://%s:%d/api/units/%s" % (
+            config['collector-web-host'],
+            config['collector-web-port'],
+            os.environ['JUJU_UNIT_NAME']
+        )
 
         data = {}
         data['dpkg'] = parse_dpkg()
