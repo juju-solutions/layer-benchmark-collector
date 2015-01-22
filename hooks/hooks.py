@@ -47,19 +47,19 @@ def install():
 
 
 def collector_changed():
+    """
+    Connect connectd to the upstream graphite server
+    """
     hostname = hookenv.relation_get('hostname')
     port = hookenv.relation_get('port')
 
     # We need to get the name of the unit in the collectd relation
     if 'JUJU_UNIT_NAME' in os.environ:
-        log('Setting up graphite')
+        log('Setting up graphite on %s' % os.environ['JUJU_UNIT_NAME'])
 
-        relations = hookenv.related_units(
-            os.environ['JUJU_UNIT_NAME'].replace('/', ':')
-        )
-
-        if relations:
-            relation = relations[0]
+        relation_data = hookenv.relations_of_type('collectd')
+        if relation_data:
+            relation = relation_data[0]["__unit__"]
             unit_name = "unit-{0}".format(
                 relation.replace('/', '-')
             )
