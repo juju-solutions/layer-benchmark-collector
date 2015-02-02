@@ -7,11 +7,3 @@ options:
     type: string
     default: ""
     description: Any extra plugin configuration can be set here.
-  collector-web-host:
-    type: string
-    default: ""
-    description: The hostname of the collector-web server.
-  collector-web-port:
-    type: int
-    default: 6543
-    description: The port of the collector-web server.

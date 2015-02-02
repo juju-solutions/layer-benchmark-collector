@@ -53,6 +53,14 @@ def collector_changed():
     hostname = hookenv.relation_get('hostname')
     port = hookenv.relation_get('port')
 
+    if not hostname:
+        return
+
+    config = hookenv.config()
+    config['collector-web-host'] = hostname
+    config['collector-web-port'] = port
+    config.save()
+
     # We need to get the name of the unit in the collectd relation
     if 'JUJU_UNIT_NAME' in os.environ:
         log('Setting up graphite on %s' % os.environ['JUJU_UNIT_NAME'])
@@ -70,6 +78,8 @@ def collector_changed():
     else:
         log('Unable to get JUJU_UNIT_NAME')
 
+    collect_profile_data()
+
 
 def collector_departed():
     if os.path.exists('/etc/collectd/collectd.conf.d/graphite.conf'):
@@ -78,6 +88,9 @@ def collector_departed():
 
 
 def collectd_changed():
+    config = hookenv.config()
+    config['remote-unit'] = os.environ['JUJU_REMOTE_UNIT']
+    config.save()
     # Trigger profile collection
     collect_profile_data()
 
@@ -90,7 +103,7 @@ def collect_profile_data():
         url = "http://%s:%d/api/units/%s" % (
             config['collector-web-host'],
             config['collector-web-port'],
-            os.environ['JUJU_UNIT_NAME']
+            config['remote-unit']
         )
 
         data = {}
