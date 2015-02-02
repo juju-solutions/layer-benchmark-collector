@@ -52,13 +52,14 @@ def collector_changed():
     """
     hostname = hookenv.relation_get('hostname')
     port = hookenv.relation_get('port')
+    api_port = hookenv.relation_get('api_port')
 
     if not hostname:
         return
 
     config = hookenv.config()
     config['collector-web-host'] = hostname
-    config['collector-web-port'] = port
+    config['collector-web-port'] = api_port
     config.save()
 
     # We need to get the name of the unit in the collectd relation
@@ -98,9 +99,9 @@ def collectd_changed():
 def collect_profile_data():
     config = hookenv.config()
 
-    if(config['collector-web-host']):
+    if(config.get('collector-web-host')):
         lshw = run_command('lshw -json')
-        url = "http://%s:%d/api/units/%s" % (
+        url = "http://%s:%s/api/units/%s" % (
             config['collector-web-host'],
             config['collector-web-port'],
             config['remote-unit']
