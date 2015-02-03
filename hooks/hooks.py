@@ -138,10 +138,10 @@ def write_collect_profile_data_script():
 
 def collect_profile_data():
     """
-    Run the previously-generated collectio script
+    Run the previously-generated collection script
     """
     if os.path.exists(COLLECT_PROFILE_DATA):
-        run_command('lshw -json')
+        run_command(COLLECT_PROFILE_DATA)
 
 
 def run_command(cmd):
