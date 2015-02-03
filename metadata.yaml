@@ -7,9 +7,12 @@ tags:
   - misc
 subordinate: true
 requires:
-  collectd:
+  juju-info:
     interface: juju-info
     scope: container
 provides:
+  benchmark:
+    interface: benchmark
+    scope: container
   collector:
       interface: cabs-metrics
