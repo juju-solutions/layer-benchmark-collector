@@ -8,8 +8,6 @@ This subordinate charm allows for the collection of system and application metri
     juju deploy mysql
     juju deploy mediawiki
 
-    juju set collectd collector-web-host=10.0.3.1
-
     juju add-relation collectd:juju-info mysql:juju-info
     juju add-relation collectd:juju-info mediawiki:juju-info
     juju set collectd plugins "cpu,memory,disk,dbi,apache"
