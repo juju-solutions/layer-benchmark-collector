@@ -3,8 +3,7 @@ import os
 import sys
 import subprocess
 import shlex
-import stat
-
+import tarfile
 
 sys.path.insert(0, os.path.join(os.environ['CHARM_DIR'], 'lib'))
 
@@ -43,7 +42,14 @@ COLLECT_PROFILE_DATA = '/usr/local/bin/collect-profile-data'
 def install():
     log('Installing collectd')
     install_packages()
+    install_benchmark_tools()
     config_changed()
+
+
+def install_benchmark_tools():
+    extract_tar('payload/benchmark-tools.tar.gz', '/opt/benchmark-tools')
+    subprocess.check_call(['python', 'setup.py', 'install'], cwd='/opt/benchmark-tools')
+    host.chownr('/opt/benchmark-tools', 'ubuntu', 'ubuntu')
 
 
 def collector_changed():
@@ -200,7 +206,7 @@ def stop():
 
 def install_packages():
     apt_update(fatal=True)
-    apt_install(packages=['collectd'], fatal=True)
+    apt_install(packages=['collectd', 'python-setuptools'], fatal=True)
 
 
 def enable_graphite(hostname, port, unit_name):
@@ -216,6 +222,14 @@ def enable_graphite(hostname, port, unit_name):
             unit=unit_name
         )
     )
+
+
+def extract_tar(tarbal, dest):
+    if not tarfile.is_tarfile(tarbal):
+        raise ValueError('%s is not a tarbal')
+
+    arch = tarfile.open(tarbal)
+    arch.extractall(dest)
 
 
 if __name__ == "__main__":
