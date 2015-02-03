@@ -66,7 +66,7 @@ def collector_changed():
     if 'JUJU_UNIT_NAME' in os.environ:
         log('Setting up graphite on %s' % os.environ['JUJU_UNIT_NAME'])
 
-        relation_data = hookenv.relations_of_type('collectd')
+        relation_data = hookenv.relations_of_type('collector')
         if relation_data:
             relation = relation_data[0]["__unit__"]
             unit_name = "unit-{0}".format(
@@ -74,12 +74,13 @@ def collector_changed():
             )
 
             if hostname and port:
+                log('Enabling graphite for %s on %s:%s' % (unit_name, hostname, port))
                 enable_graphite(hostname, port, unit_name)
                 start()
     else:
         log('Unable to get JUJU_UNIT_NAME')
 
-    collect_profile_data()
+    collectd_changed()
 
 
 def collector_departed():
@@ -92,6 +93,7 @@ def collectd_changed():
     config = hookenv.config()
     config['remote-unit'] = os.environ['JUJU_REMOTE_UNIT']
     config.save()
+
     # Trigger profile collection
     collect_profile_data()
 
@@ -99,13 +101,21 @@ def collectd_changed():
 def collect_profile_data():
     config = hookenv.config()
 
-    if(config.get('collector-web-host')):
+    if (
+        config.get('collector-web-host') is not None and
+        config.get('collector-web-port') is not None and
+        config.get('remote-unit') is not None
+    ):
+
+        log('Collecting profile data.')
+
         lshw = run_command('lshw -json')
         url = "http://%s:%s/api/units/%s" % (
             config['collector-web-host'],
             config['collector-web-port'],
             config['remote-unit']
         )
+        log(url)
 
         data = {}
         data['dpkg'] = parse_dpkg()
