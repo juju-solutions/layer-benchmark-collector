@@ -3,6 +3,7 @@ import os
 import sys
 import subprocess
 import shlex
+import tarfile
 
 sys.path.insert(0, os.path.join(os.environ['CHARM_DIR'], 'lib'))
 
@@ -219,6 +220,14 @@ def enable_graphite(hostname, port, unit_name):
             unit=unit_name
         )
     )
+
+
+def extract_tar(tarbal, dest):
+    if not tarfile.is_tarfile(tarbal):
+        raise ValueError('%s is not a tarbal')
+
+    arch = tarfile.open(tarbal)
+    arch.extractall(dest)
 
 
 if __name__ == "__main__":
