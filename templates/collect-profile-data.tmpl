@@ -5,14 +5,20 @@ import subprocess
 import shlex
 import re
 
-
 def collect_profile_data():
+
     lshw = run_command('lshw -json')
-    url = "http://{{ host }}:{{ port }}/api/units/{{ unit }}"
 
     data = {}
     data['dpkg'] = parse_dpkg()
     data['lshw'] = json.loads(lshw)
+
+    # The UUID will only be present within an Action context
+    if 'JUJU_ACTION_UUID' in os.environ:
+        url = "http://{{ host }}:{{ port }}/api/units/{{ unit }}?action=%s" % os.environ['JUJU_ACTION_UUID']
+    else:
+        url = "http://{{ host }}:{{ port }}/api/units/{{ unit }}"
+
     requests.post(url, data=json.dumps(data))
 
 
