@@ -44,6 +44,7 @@ def install():
     install_packages()
     install_benchmark_tools()
     config_changed()
+    write_collect_profile_data_script()
 
 
 def install_benchmark_tools():
