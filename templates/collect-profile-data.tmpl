@@ -4,6 +4,8 @@ import json
 import subprocess
 import shlex
 import re
+import os
+
 
 def collect_profile_data():
 
@@ -11,6 +13,8 @@ def collect_profile_data():
 
     data = {}
     data['dpkg'] = parse_dpkg()
+    data['pip'] = parse_pip()
+    data['gem'] = parse_gem()
     data['lshw'] = json.loads(lshw)
 
     # The UUID will only be present within an Action context
@@ -20,6 +24,40 @@ def collect_profile_data():
         url = "http://{{ host }}:{{ port }}/api/units/{{ unit }}"
 
     requests.post(url, data=json.dumps(data))
+
+
+def parse_gem():
+    packages = []
+    output = run_command('gem list')
+    if output:
+        p = re.compile('^([A-Za-z.]+)\W+([0-9.]+)')
+
+        for line in output.split('\n'):
+            m = p.match(line)
+            if m:
+                package = {
+                    'name': m.groups()[0],
+                    'version': m.groups()[1]
+                }
+                packages.append(package)
+    return packages
+
+
+def parse_pip():
+    packages = []
+    output = run_command('pip list')
+    if output:
+        p = re.compile('^([A-Za-z.]+)\W+([0-9.]+)')
+
+        for line in output.split('\n'):
+            m = p.match(line)
+            if m:
+                package = {
+                    'name': m.groups()[0],
+                    'version': m.groups()[1]
+                }
+                packages.append(package)
+    return packages
 
 
 def parse_dpkg():
