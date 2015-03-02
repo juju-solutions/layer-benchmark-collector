@@ -3,7 +3,6 @@ import os
 import sys
 import subprocess
 import shlex
-import tarfile
 
 sys.path.insert(0, os.path.join(os.environ['CHARM_DIR'], 'lib'))
 
@@ -24,13 +23,6 @@ except ImportError:
     apt_install(['python-jinja2'], fatal=True)
     from jinja2 import Template
 
-try:
-    import requests
-except ImportError:
-    apt_update(fatal=True)
-    apt_install(['python-requests'], fatal=True)
-    import requests
-
 
 hooks = hookenv.Hooks()
 log = hookenv.log
@@ -42,15 +34,8 @@ COLLECT_PROFILE_DATA = '/usr/local/bin/collect-profile-data'
 def install():
     log('Installing collectd')
     install_packages()
-    install_benchmark_tools()
     config_changed()
     write_collect_profile_data_script()
-
-
-def install_benchmark_tools():
-    extract_tar('payload/benchmark-tools.tar.gz', '/opt/benchmark-tools')
-    subprocess.check_call(['python', 'setup.py', 'install'], cwd='/opt/benchmark-tools')
-    host.chownr('/opt/benchmark-tools', 'ubuntu', 'ubuntu')
 
 
 def collector_changed():
@@ -221,14 +206,6 @@ def enable_graphite(hostname, port, unit_name):
             unit=unit_name
         )
     )
-
-
-def extract_tar(tarbal, dest):
-    if not tarfile.is_tarfile(tarbal):
-        raise ValueError('%s is not a tarbal')
-
-    arch = tarfile.open(tarbal)
-    arch.extractall(dest)
 
 
 if __name__ == "__main__":
