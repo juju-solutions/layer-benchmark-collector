@@ -1,0 +1,105 @@
+#!/usr/bin/env python
+import requests
+import json
+import subprocess
+import shlex
+import re
+import os
+
+
+def collect_profile_data():
+
+    lshw = run_command('lshw -json')
+
+    data = {}
+    data['dpkg'] = parse_dpkg()
+    data['pip'] = parse_pip()
+    data['gem'] = parse_gem()
+    data['lshw'] = json.loads(lshw)
+
+    # The UUID will only be present within an Action context
+    if 'JUJU_ACTION_UUID' in os.environ:
+        url = "http://{{ host }}:{{ port }}/api/units/{{ unit }}?action=%s" % os.environ['JUJU_ACTION_UUID']
+    else:
+        url = "http://{{ host }}:{{ port }}/api/units/{{ unit }}"
+
+    requests.post(url, data=json.dumps(data))
+
+
+def parse_gem():
+    packages = []
+    output = run_command('gem list')
+    if output:
+        p = re.compile('^([A-Za-z.]+)\W+([0-9.]+)')
+
+        for line in output.split('\n'):
+            m = p.match(line)
+            if m:
+                package = {
+                    'name': m.groups()[0],
+                    'version': m.groups()[1]
+                }
+                packages.append(package)
+    return packages
+
+
+def parse_pip():
+    packages = []
+    output = run_command('pip list')
+    if output:
+        p = re.compile('^([A-Za-z.]+)\W+([0-9.]+)')
+
+        for line in output.split('\n'):
+            m = p.match(line)
+            if m:
+                package = {
+                    'name': m.groups()[0],
+                    'version': m.groups()[1]
+                }
+                packages.append(package)
+    return packages
+
+
+def parse_dpkg():
+    """
+    Parse the output of `dpkg -l` to build a list of installed packages
+    and their version/architecture.
+    """
+    packages = []
+    output = run_command('dpkg -l')
+    p = re.compile('\s+')
+    for line in output.split('\n'):
+        fields = p.split(line)
+        if(len(fields) >= 4):
+            status = fields[0]
+            if (status == 'ii'):
+                name = fields[1]
+                version = fields[2]
+                arch = fields[3]
+                desc = " ".join(fields[4:])
+                package = {
+                    'status': status,
+                    'name': name,
+                    'arch': arch,
+                    'version': version,
+                    'desc': desc,
+                }
+                packages.append(package)
+    return packages
+
+
+def run_command(cmd):
+    output = None
+    try:
+        output = subprocess.check_output(shlex.split(cmd))
+    except subprocess.CalledProcessError:
+        pass
+    except IOError:
+        pass
+    except OSError:
+        pass
+    return output
+
+
+if __name__ == "__main__":
+    collect_profile_data()

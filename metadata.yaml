@@ -7,7 +7,7 @@ tags:
   - misc
 subordinate: true
 requires:
-  collectd:
+  benchmark:
     interface: juju-info
     scope: container
 provides:

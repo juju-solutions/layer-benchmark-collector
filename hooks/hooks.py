@@ -1,11 +1,8 @@
 #!/usr/bin/python
-
 import os
 import sys
 import subprocess
 import shlex
-import json
-import re
 
 sys.path.insert(0, os.path.join(os.environ['CHARM_DIR'], 'lib'))
 
@@ -26,24 +23,19 @@ except ImportError:
     apt_install(['python-jinja2'], fatal=True)
     from jinja2 import Template
 
-try:
-    import requests
-except ImportError:
-    apt_update(fatal=True)
-    apt_install(['python-requests'], fatal=True)
-    import requests
-
 
 hooks = hookenv.Hooks()
 log = hookenv.log
 
 SERVICE = 'collectd'
+COLLECT_PROFILE_DATA = '/usr/local/bin/collect-profile-data'
 
 
 def install():
     log('Installing collectd')
     install_packages()
     config_changed()
+    write_collect_profile_data_script()
 
 
 def collector_changed():
@@ -66,7 +58,7 @@ def collector_changed():
     if 'JUJU_UNIT_NAME' in os.environ:
         log('Setting up graphite on %s' % os.environ['JUJU_UNIT_NAME'])
 
-        relation_data = hookenv.relations_of_type('collector')
+        relation_data = hookenv.relations_of_type('benchmark')
         if relation_data:
             relation = relation_data[0]["__unit__"]
             unit_name = "unit-{0}".format(
@@ -80,8 +72,6 @@ def collector_changed():
     else:
         log('Unable to get JUJU_UNIT_NAME')
 
-    collectd_changed()
-
 
 def collector_departed():
     if os.path.exists('/etc/collectd/collectd.conf.d/graphite.conf'):
@@ -89,16 +79,21 @@ def collector_departed():
         start()
 
 
-def collectd_changed():
+def benchmark_changed():
     config = hookenv.config()
     config['remote-unit'] = os.environ['JUJU_REMOTE_UNIT']
     config.save()
 
     # Trigger profile collection
+    write_collect_profile_data_script()
     collect_profile_data()
 
 
-def collect_profile_data():
+def write_collect_profile_data_script():
+    """
+    (re)generate the script to collect profile data and send it
+    to the collector api
+    """
     config = hookenv.config()
 
     if (
@@ -107,48 +102,31 @@ def collect_profile_data():
         config.get('remote-unit') is not None
     ):
 
-        log('Collecting profile data.')
+        template_path = "{0}/templates/collect-profile-data.tmpl".format(
+            hookenv.charm_dir())
 
-        lshw = run_command('lshw -json')
-        url = "http://%s:%s/api/units/%s" % (
-            config['collector-web-host'],
-            config['collector-web-port'],
-            config['remote-unit']
+        host.write_file(
+            COLLECT_PROFILE_DATA,
+            Template(open(template_path).read(), keep_trailing_newline=True).render(
+                host=config.get('collector-web-host'),
+                port=config.get('collector-web-port'),
+                unit=config.get('remote-unit')
+            )
         )
-        log(url)
 
-        data = {}
-        data['dpkg'] = parse_dpkg()
-        data['lshw'] = json.loads(lshw)
-        requests.post(url, data=json.dumps(data))
+        os.chmod(COLLECT_PROFILE_DATA, 0755)
+    else:
+        # Remove the file if the relation is broken
+        if os.path.exists(COLLECT_PROFILE_DATA):
+            os.remove(COLLECT_PROFILE_DATA)
 
 
-def parse_dpkg():
+def collect_profile_data():
     """
-    Parse the output of `dpkg -l` to build a list of installed packages
-    and their version/architecture.
+    Run the previously-generated collection script
     """
-    packages = []
-    output = run_command('dpkg -l')
-    p = re.compile('\s+')
-    for line in output.split('\n'):
-        fields = p.split(line)
-        if(len(fields) >= 4):
-            status = fields[0]
-            if (status == 'ii'):
-                name = fields[1]
-                version = fields[2]
-                arch = fields[3]
-                desc = " ".join(fields[4:])
-                package = {
-                    'status': status,
-                    'name': name,
-                    'arch': arch,
-                    'version': version,
-                    'desc': desc,
-                }
-                packages.append(package)
-    return packages
+    if os.path.exists(COLLECT_PROFILE_DATA):
+        run_command(COLLECT_PROFILE_DATA)
 
 
 def run_command(cmd):
@@ -212,7 +190,7 @@ def stop():
 
 def install_packages():
     apt_update(fatal=True)
-    apt_install(packages=['collectd'], fatal=True)
+    apt_install(packages=['collectd', 'python-setuptools'], fatal=True)
 
 
 def enable_graphite(hostname, port, unit_name):
