@@ -2,6 +2,7 @@ destination: lib/charmhelpers
 branch: lp:charm-helpers
 include:
   - __init__
+  - cli
   - core
   - fetch
   - contrib.benchmark
