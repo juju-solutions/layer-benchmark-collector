@@ -5,17 +5,28 @@ import subprocess
 import shlex
 import re
 import os
+from distutils.spawn import find_executable
 
 
 def collect_profile_data():
 
-    lshw = run_command('lshw -json')
-
     data = {}
-    data['dpkg'] = parse_dpkg()
-    data['pip'] = parse_pip()
-    data['gem'] = parse_gem()
-    data['lshw'] = json.loads(lshw)
+
+    if find_executable('dpkg'):
+        data['dpkg'] = parse_dpkg()
+    if find_executable('pip'):
+        data['pip'] = parse_pip()
+
+    if find_executable('gem'):
+        data['gem'] = parse_gem()
+
+    if find_executable('lshw'):
+        lshw = run_command('lshw -json')
+        data['lshw'] = json.loads(lshw)
+
+    if find_executable('npm'):
+        data['npm-global'] = parse_npm_global()
+        data['npm-local'] = parse_npm_local()
 
     # The UUID will only be present within an Action context
     if 'JUJU_ACTION_UUID' in os.environ:
@@ -86,6 +97,16 @@ def parse_dpkg():
                 }
                 packages.append(package)
     return packages
+
+
+def parse_npm_global():
+    # Globally-installed modules
+    return json.loads(run_command('npm -g ls --json'))
+
+
+def parse_npm_local():
+    # Locally-installed modules
+    return json.loads(run_command('npm ls --json'))
 
 
 def run_command(cmd):
