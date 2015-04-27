@@ -176,6 +176,7 @@ def config_changed():
 
 def upgrade_charm():
     log('Upgrading collectd')
+    asfd
     install_packages()
     config_changed()
 
