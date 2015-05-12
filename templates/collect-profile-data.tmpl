@@ -10,23 +10,40 @@ from distutils.spawn import find_executable
 
 def collect_profile_data():
 
-    data = {}
+    # - hardware
+    #      - lshw
+    # - packages
+    #      - apt
+    #      - dpkg
+    #      - ...
+    # - network
+    #      - ...
+    # - storage
+    #      - device
+    #           - size, usage, inodes
+
+    data = {
+        'hardware': {},
+        'packages': {},
+        'network': {},
+        'storage': {}
+    }
 
     if find_executable('dpkg'):
-        data['dpkg'] = parse_dpkg()
+        data['packages']['dpkg'] = parse_dpkg()
     if find_executable('pip'):
-        data['pip'] = parse_pip()
+        data['packages']['pip'] = parse_pip()
 
     if find_executable('gem'):
-        data['gem'] = parse_gem()
+        data['packages']['gem'] = parse_gem()
 
     if find_executable('lshw'):
         lshw = run_command('lshw -json')
-        data['lshw'] = json.loads(lshw)
+        data['hardware']['lshw'] = json.loads(lshw)
 
     if find_executable('npm'):
-        data['npm-global'] = parse_npm_global()
-        data['npm-local'] = parse_npm_local()
+        data['packages']['npm-global'] = parse_npm_global()
+        data['packages']['npm-local'] = parse_npm_local()
 
     # The UUID will only be present within an Action context
     if 'JUJU_ACTION_UUID' in os.environ:
