@@ -1,4 +1,4 @@
-name: collectd
+name: cabs-collector
 summary: A daemon that collects system performance metrics.
 maintainer: Adam Israel <adam.israel@canonical.com>
 description: |
