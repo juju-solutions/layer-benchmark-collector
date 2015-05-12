@@ -68,6 +68,11 @@ def collector_changed():
             if hostname and port:
                 log('Enabling graphite for %s on %s:%s' % (unit_name, hostname, port))
                 enable_graphite(hostname, port, unit_name)
+
+                # Trigger profile collection
+                write_collect_profile_data_script()
+                collect_profile_data()
+
                 start()
     else:
         log('Unable to get JUJU_UNIT_NAME')
