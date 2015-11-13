@@ -1,8 +1,8 @@
-name: cabs-collector
-summary: A daemon that collects system performance metrics.
+name: benchmark-collector
+summary: A collectd daemon that collects system performance metrics.
 maintainer: Adam Israel <adam.israel@canonical.com>
 description: |
-  collectd is a daemon that collects system statistics periodically.
+  benchmark-collector uses collectd to capture system metrics.
 tags:
   - misc
 subordinate: true
@@ -12,4 +12,7 @@ requires:
     scope: container
 provides:
   collector:
-      interface: cabs-metrics
+    interface: benchmark-collector
+peers:
+  peer:
+    interface: benchmark-collector-peer

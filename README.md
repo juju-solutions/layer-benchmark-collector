@@ -5,8 +5,8 @@ This subordinate charm allows for the collection of system and application metri
 # Usage
 
     juju deploy cabs
-    juju deploy cabs-collector
-    juju add-relation cabs cabs-collector
+    juju deploy benchmark-collector
+    juju add-relation cabs benchmark-collector
 
     juju deploy mysql
     juju deploy mediawiki

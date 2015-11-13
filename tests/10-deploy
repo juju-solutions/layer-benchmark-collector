@@ -1,11 +1,10 @@
 #!/usr/bin/python3
 
 import amulet
-import requests
 
 d = amulet.Deployment(series='trusty')
 
-d.add('collectd')
+d.add('benchmark-collector')
 d.add('mysql')
 d.add('mediawiki')
 
@@ -13,8 +12,8 @@ d.add('mediawiki')
 d.configure('mysql', {'dataset-size': '512M'})
 
 d.relate('mediawiki:db', 'mysql:db')
-d.relate('collectd:collectd', 'mediawiki:juju-info')
-d.relate('collectd:collectd', 'mysql:juju-info')
+d.relate('benchmark-collector:benchmark', 'mediawiki:juju-info')
+d.relate('benchmark-collector:benchmark', 'mysql:juju-info')
 
 
 try:
@@ -26,8 +25,8 @@ except:
     raise
 
 # Once everything is deployed, configure collection.
-mediawiki = d.sentry.unit['mediawiki/0']
-mysql = d.sentry.unit['mysql/0']
+mediawiki = d.sentry['mediawiki'][0]
+mysql = d.sentry['mysql'][0]
 
 # TODO: Do one run to get the file and parse it.
 # Need to get the db configuration from mediawiki
@@ -45,7 +44,7 @@ dbpasswd, code = mediawiki.run("cat /etc/mediawiki/LocalSettings.php \
 # $wgDBuser           = "thaedouyahlahdi";
 # $wgDBpassword       = "laemaiteekaezae";
 
-d.configure('collectd', {
+d.configure('benchmark-collector', {
     'plugins': 'cpu,memory,disk,dbi,apache',
     'extra-config': """
         <Plugin disk>
@@ -72,7 +71,7 @@ d.configure('collectd', {
     """.format(mysql.info['public-address'], dbhost, dbuser, dbpasswd, dbname)
 })
 
-d.expose('collectd')
+d.expose('benchmark-collector')
 
 
 # # test we can access over http

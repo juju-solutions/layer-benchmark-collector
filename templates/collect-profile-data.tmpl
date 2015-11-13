@@ -3,12 +3,13 @@ import requests
 import json
 import subprocess
 import shlex
+import sys
 import re
 import os
 from distutils.spawn import find_executable
 
 
-def collect_profile_data():
+def collect_profile_data(action_id=None):
 
     # - hardware
     #      - lshw
@@ -46,8 +47,9 @@ def collect_profile_data():
         data['packages']['npm-local'] = parse_npm_local()
 
     # The UUID will only be present within an Action context
-    if 'JUJU_ACTION_UUID' in os.environ:
-        url = "http://{{ host }}:{{ port }}/api/units/{{ unit }}?action=%s" % os.environ['JUJU_ACTION_UUID']
+    action_id = action_id or os.environ.get('JUJU_ACTION_ID')
+    if action_id:
+        url = "http://{{ host }}:{{ port }}/api/units/{{ unit }}?action=%s" % action_id
     else:
         url = "http://{{ host }}:{{ port }}/api/units/{{ unit }}"
 
@@ -140,4 +142,5 @@ def run_command(cmd):
 
 
 if __name__ == "__main__":
-    collect_profile_data()
+    action_id = sys.argv[1] if sys.argc > 1 else None
+    collect_profile_data(action_id=action_id)

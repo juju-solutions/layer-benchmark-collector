@@ -9,6 +9,7 @@ sys.path.insert(0, os.path.join(os.environ['CHARM_DIR'], 'lib'))
 from charmhelpers.core import (
     hookenv,
     host,
+    unitdata,
 )
 
 from charmhelpers.fetch import (
@@ -66,7 +67,8 @@ def collector_changed():
             )
 
             if hostname and port:
-                log('Enabling graphite for %s on %s:%s' % (unit_name, hostname, port))
+                log('Enabling graphite for %s on %s:%s' % (
+                    unit_name, hostname, port))
                 enable_graphite(hostname, port, unit_name)
 
                 # Trigger profile collection
@@ -85,6 +87,8 @@ def collector_departed():
 
 
 def benchmark_changed():
+    set_action_id(hookenv.relation_get('action_id'))
+
     config = hookenv.config()
     config['remote-unit'] = os.environ['JUJU_REMOTE_UNIT']
     config.save()
@@ -92,6 +96,35 @@ def benchmark_changed():
     # Trigger profile collection
     write_collect_profile_data_script()
     collect_profile_data()
+
+
+def set_action_id(action_id):
+    if unitdata.kv().get('action_id') == action_id:
+        # We've already seen this action_id
+        return
+
+    unitdata.kv().set('action_id', action_id)
+
+    if not action_id:
+        return
+
+    # Broadcast action_id to our peers, then
+    # do a profile collection on this unit
+    for rid in hookenv.relation_ids('peer'):
+        hookenv.relation_set(relation_id=rid, relation_settings={
+            'action_id': action_id
+        })
+    collect_profile_data(action_id=action_id)
+
+
+def peer_changed():
+    """One of our peers is telling us to do a profile data
+    collection and tag it with the provided ``action_id``.
+
+    """
+    action_id = hookenv.relation_get('action_id')
+    if action_id:
+        collect_profile_data(action_id=action_id)
 
 
 def write_collect_profile_data_script():
@@ -112,7 +145,10 @@ def write_collect_profile_data_script():
 
         host.write_file(
             COLLECT_PROFILE_DATA,
-            Template(open(template_path).read(), keep_trailing_newline=True).render(
+            Template(
+                open(template_path).read(),
+                keep_trailing_newline=True
+            ).render(
                 host=config.get('collector-web-host'),
                 port=config.get('collector-web-port'),
                 unit=config.get('remote-unit')
@@ -126,12 +162,17 @@ def write_collect_profile_data_script():
             os.remove(COLLECT_PROFILE_DATA)
 
 
-def collect_profile_data():
+def collect_profile_data(action_id=None):
     """
     Run the previously-generated collection script
     """
+    log('Collecting profile data (action: {})'.format(action_id))
+
     if os.path.exists(COLLECT_PROFILE_DATA):
-        run_command(COLLECT_PROFILE_DATA)
+        cmd = COLLECT_PROFILE_DATA
+        if action_id:
+            cmd += ' {}'.format(action_id)
+        run_command(cmd)
 
 
 def run_command(cmd):
@@ -167,7 +208,10 @@ def config_changed():
 
         host.write_file(
             '/etc/collectd/collectd.conf.d/plugins.conf',
-            Template(open(template_path).read(), keep_trailing_newline=True).render(plugins=plugins)
+            Template(
+                open(template_path).read(),
+                keep_trailing_newline=True
+            ).render(plugins=plugins)
         )
     if config.changed('extra-config'):
         host.write_file(
@@ -205,7 +249,10 @@ def enable_graphite(hostname, port, unit_name):
 
     host.write_file(
         '/etc/collectd/collectd.conf.d/graphite.conf',
-        Template(open(template_path).read(), keep_trailing_newline=True).render(
+        Template(
+            open(template_path).read(),
+            keep_trailing_newline=True
+        ).render(
             host=hostname,
             port=port,
             unit=unit_name
