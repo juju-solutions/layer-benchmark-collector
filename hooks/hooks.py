@@ -9,7 +9,6 @@ sys.path.insert(0, os.path.join(os.environ['CHARM_DIR'], 'lib'))
 from charmhelpers.core import (
     hookenv,
     host,
-    unitdata,
 )
 
 from charmhelpers.fetch import (
@@ -46,6 +45,7 @@ def collector_changed():
     hostname = hookenv.relation_get('hostname')
     port = hookenv.relation_get('port')
     api_port = hookenv.relation_get('api_port')
+    action_id = hookenv.relation_get('action_id')
 
     if not hostname:
         return
@@ -73,7 +73,7 @@ def collector_changed():
 
                 # Trigger profile collection
                 write_collect_profile_data_script()
-                collect_profile_data()
+                collect_profile_data(action_id=action_id)
 
                 start()
     else:
@@ -87,8 +87,6 @@ def collector_departed():
 
 
 def benchmark_changed():
-    set_action_id(hookenv.relation_get('action_id'))
-
     config = hookenv.config()
     config['remote-unit'] = os.environ['JUJU_REMOTE_UNIT']
     config.save()
@@ -96,35 +94,6 @@ def benchmark_changed():
     # Trigger profile collection
     write_collect_profile_data_script()
     collect_profile_data()
-
-
-def set_action_id(action_id):
-    if unitdata.kv().get('action_id') == action_id:
-        # We've already seen this action_id
-        return
-
-    unitdata.kv().set('action_id', action_id)
-
-    if not action_id:
-        return
-
-    # Broadcast action_id to our peers, then
-    # do a profile collection on this unit
-    for rid in hookenv.relation_ids('peer'):
-        hookenv.relation_set(relation_id=rid, relation_settings={
-            'action_id': action_id
-        })
-    collect_profile_data(action_id=action_id)
-
-
-def peer_changed():
-    """One of our peers is telling us to do a profile data
-    collection and tag it with the provided ``action_id``.
-
-    """
-    action_id = hookenv.relation_get('action_id')
-    if action_id:
-        collect_profile_data(action_id=action_id)
 
 
 def write_collect_profile_data_script():
