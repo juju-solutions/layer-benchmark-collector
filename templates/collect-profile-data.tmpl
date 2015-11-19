@@ -47,7 +47,7 @@ def collect_profile_data(action_id=None):
         data['packages']['npm-local'] = parse_npm_local()
 
     # The UUID will only be present within an Action context
-    action_id = action_id or os.environ.get('JUJU_ACTION_ID')
+    action_id = action_id or os.environ.get('JUJU_ACTION_UUID')
     if action_id:
         url = "http://{{ host }}:{{ port }}/api/units/{{ unit }}?action=%s" % action_id
     else:
@@ -142,5 +142,5 @@ def run_command(cmd):
 
 
 if __name__ == "__main__":
-    action_id = sys.argv[1] if sys.argc > 1 else None
+    action_id = sys.argv[1] if len(sys.argv) > 1 else None
     collect_profile_data(action_id=action_id)

@@ -13,6 +13,3 @@ requires:
 provides:
   collector:
     interface: benchmark-collector
-peers:
-  peer:
-    interface: benchmark-collector-peer
