@@ -4,7 +4,7 @@ import sys
 import subprocess
 import shlex
 
-from charms.reactive import when, when_not, hook
+from charms.reactive import hook
 
 from charmhelpers.core import (
     hookenv,
@@ -33,7 +33,7 @@ def install():
     config_changed()
     write_collect_profile_data_script()
 
-@when("collector.connected")
+@hook("collector-relation-changed")
 def collector_changed(collector):
     """
     Connect connectd to the upstream graphite server
@@ -75,13 +75,13 @@ def collector_changed(collector):
     else:
         log('Unable to get JUJU_UNIT_NAME')
 
-@when_not("collector.connected")
+@hook("collector-relation-departed")
 def collector_departed():
     if os.path.exists('/etc/collectd/collectd.conf.d/graphite.conf'):
         os.remove('/etc/collectd/collectd.conf.d/graphite.conf')
         start()
 
-@when("benchmark.available")
+@hook("benchmark-relation-changed")
 def benchmark_changed(benchmark):
     config = hookenv.config()
     config['remote-unit'] = os.environ['JUJU_REMOTE_UNIT']
@@ -199,12 +199,16 @@ def install_packages():
 
 def enable_graphite(hostname, port, unit_name):
     # Enable/configure whisper plugin
+    target = "/etc/collectd/collectd.conf.d/graphite.conf"
     render(
         source="graphite.tmpl",
-        target="/etc/collectd/collectd.conf.d/graphite.conf",
+        target=target,
         context={
             "host": hostname,
             "port": port,
             "unit": unit_name
         }
     )
+    # write a newline because collectd wants it
+    with open(target, "a") as f:
+        f.write("\n")
