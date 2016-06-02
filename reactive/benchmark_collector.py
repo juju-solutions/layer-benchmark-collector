@@ -4,8 +4,6 @@ import sys
 import subprocess
 import shlex
 
-sys.path.insert(0, os.path.join(os.environ['CHARM_DIR'], 'lib'))
-
 from charmhelpers.core import (
     hookenv,
     host,
@@ -31,13 +29,14 @@ SERVICE = 'collectd'
 COLLECT_PROFILE_DATA = '/usr/local/bin/collect-profile-data'
 
 
+@hook("install")
 def install():
     log('Installing collectd')
     install_packages()
     config_changed()
     write_collect_profile_data_script()
 
-
+# TODO: reactive state here
 def collector_changed():
     """
     Connect connectd to the upstream graphite server
@@ -79,14 +78,14 @@ def collector_changed():
     else:
         log('Unable to get JUJU_UNIT_NAME')
 
-
+# TODO: reactive state here
 def collector_departed():
     if os.path.exists('/etc/collectd/collectd.conf.d/graphite.conf'):
         os.remove('/etc/collectd/collectd.conf.d/graphite.conf')
         start()
 
-
-def benchmark_changed():
+@when("benchmark.available")
+def benchmark_changed(benchmark):
     config = hookenv.config()
     config['remote-unit'] = os.environ['JUJU_REMOTE_UNIT']
     config.save()
@@ -157,7 +156,7 @@ def run_command(cmd):
         log('Could not execute command: %s' % cmd)
     return output
 
-
+@hook("config-changed")
 def config_changed():
     config = hookenv.config()
 
@@ -191,17 +190,17 @@ def config_changed():
     config.save()
     start()
 
-
+@hook("upgrade-charm")
 def upgrade_charm():
     log('Upgrading collectd')
     install_packages()
     config_changed()
 
-
+@hook("start")
 def start():
     host.service_restart(SERVICE) or host.service_start(SERVICE)
 
-
+@hook("stop")
 def stop():
     host.service_stop(SERVICE)
 
@@ -228,7 +227,3 @@ def enable_graphite(hostname, port, unit_name):
         )
     )
 
-
-if __name__ == "__main__":
-    # execute a hook based on the name the program is called by
-    hooks.execute(sys.argv)
