@@ -76,7 +76,7 @@ def collector_changed(collector):
         log('Unable to get JUJU_UNIT_NAME')
 
 @when_not("collector.connected")
-def collector_departed(collector):
+def collector_departed():
     if os.path.exists('/etc/collectd/collectd.conf.d/graphite.conf'):
         os.remove('/etc/collectd/collectd.conf.d/graphite.conf')
         start()
