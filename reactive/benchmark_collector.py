@@ -123,7 +123,7 @@ def write_collect_profile_data_script():
             )
         )
 
-        os.chmod(COLLECT_PROFILE_DATA, 0755)
+        os.chmod(COLLECT_PROFILE_DATA, 0o755)
     else:
         # Remove the file if the relation is broken
         if os.path.exists(COLLECT_PROFILE_DATA):
