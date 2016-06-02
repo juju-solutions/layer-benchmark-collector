@@ -4,6 +4,8 @@ import sys
 import subprocess
 import shlex
 
+from charms.reactive import when, when_not, hook
+
 from charmhelpers.core import (
     hookenv,
     host,
