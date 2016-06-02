@@ -16,12 +16,7 @@ from charmhelpers.fetch import (
     apt_install,
 )
 
-try:
-    from jinja2 import Template
-except ImportError:
-    apt_update(fatal=True)
-    apt_install(['python-jinja2'], fatal=True)
-    from jinja2 import Template
+from charmhelpers.core.templating import render
 
 
 hooks = hookenv.Hooks()
@@ -109,23 +104,16 @@ def write_collect_profile_data_script():
         config.get('collector-web-port') is not None and
         config.get('remote-unit') is not None
     ):
-
-        template_path = "{0}/templates/collect-profile-data.tmpl".format(
-            hookenv.charm_dir())
-
-        host.write_file(
-            COLLECT_PROFILE_DATA,
-            Template(
-                open(template_path).read(),
-                keep_trailing_newline=True
-            ).render(
-                host=config.get('collector-web-host'),
-                port=config.get('collector-web-port'),
-                unit=config.get('remote-unit')
-            )
+        render(
+            source="collect-profile-data.tmpl",
+            target=COLLECT_PROFILE_DATA,
+            perms=0o755,
+            context={
+                "host": config.get("collector-web-host"),
+                "port": config.get("collector-web-port"),
+                "unit": config.get("remote-unit")
+            }
         )
-
-        os.chmod(COLLECT_PROFILE_DATA, 0o755)
     else:
         # Remove the file if the relation is broken
         if os.path.exists(COLLECT_PROFILE_DATA):
@@ -173,20 +161,17 @@ def config_changed():
         for plugin in config['plugins'].split(','):
             if len(plugin.strip()):
                 plugins.append(plugin)
-        template_path = "{0}/templates/plugins.tmpl".format(
-            hookenv.charm_dir())
-
-        host.write_file(
-            '/etc/collectd/collectd.conf.d/plugins.conf',
-            Template(
-                open(template_path).read(),
-                keep_trailing_newline=True
-            ).render(plugins=plugins)
+        render(
+            source="plugins.tmpl",
+            target="/etc/collectd/collectd.conf.d/plugins.conf",
+            context={
+                "plugins": plugins
+            }
         )
     if config.changed('extra-config'):
         host.write_file(
             '/etc/collectd/collectd.conf.d/extra.conf',
-            "%s\n" % config['extra-config']
+            bytes("%s\n" % config['extra-config'], "utf-8")
         )
 
     config.save()
@@ -214,18 +199,12 @@ def install_packages():
 
 def enable_graphite(hostname, port, unit_name):
     # Enable/configure whisper plugin
-    template_path = "{0}/templates/graphite.tmpl".format(
-        hookenv.charm_dir())
-
-    host.write_file(
-        '/etc/collectd/collectd.conf.d/graphite.conf',
-        Template(
-            open(template_path).read(),
-            keep_trailing_newline=True
-        ).render(
-            host=hostname,
-            port=port,
-            unit=unit_name
-        )
+    render(
+        source="graphite.tmpl",
+        target="/etc/collectd/collectd.conf.d/graphite.conf",
+        context={
+            "host": hostname,
+            "port": port,
+            "unit": unit_name
+        }
     )
-
