@@ -36,8 +36,8 @@ def install():
     config_changed()
     write_collect_profile_data_script()
 
-# TODO: reactive state here
-def collector_changed():
+@when("collector.connected")
+def collector_changed(collector):
     """
     Connect connectd to the upstream graphite server
     """
@@ -78,8 +78,8 @@ def collector_changed():
     else:
         log('Unable to get JUJU_UNIT_NAME')
 
-# TODO: reactive state here
-def collector_departed():
+@when_not("collector.connected")
+def collector_departed(collector):
     if os.path.exists('/etc/collectd/collectd.conf.d/graphite.conf'):
         os.remove('/etc/collectd/collectd.conf.d/graphite.conf')
         start()
