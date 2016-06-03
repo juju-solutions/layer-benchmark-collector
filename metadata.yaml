@@ -1,8 +1,9 @@
 name: benchmark-collector
-summary: A collectd daemon that collects system performance metrics.
+summary: Collects system metrics and profile data.
 maintainer: Adam Israel <adam.israel@canonical.com>
 description: |
-  benchmark-collector uses collectd to capture system metrics.
+  benchmark-collector collects system metrics with topbeat and profile
+  data with profile-collector.
 tags:
   - misc
 subordinate: true

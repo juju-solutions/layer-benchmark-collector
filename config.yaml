@@ -1,12 +1,4 @@
 options:
-  plugins:
-    type: string
-    default: "cpu,disk,memory,network"
-    description: "A list of individual plugins, comma separated, to collect metrics for."
-  extra-config:
-    type: string
-    default: ""
-    description: Any extra plugin configuration can be set here.
   install_sources:
     type: string
     default: deb http://packages.elastic.co/beats/apt stable main
