@@ -1,5 +1,5 @@
 includes:
-  - layer:basic
+  - layer:topbeat
   - interface:juju-info
   - interface:benchmark-collector
 options:
