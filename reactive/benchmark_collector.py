@@ -191,10 +191,19 @@ def start():
 def stop():
     host.service_stop(SERVICE)
 
+def disable_collectd_fqdnlookup():
+    # see https://bugs.launchpad.net/ubuntu/+source/collectd/+bug/1077732
+    with open("/etc/collectd/collectd.conf") as f:
+        conf = f.read()
+    conf = conf.replace("FQDNLookup true", "FQDNLookup false")
+    with open("/etc/collectd/collectd.conf", "w") as f:
+        f.write(conf)
 
 def install_packages():
     apt_update(fatal=True)
-    apt_install(packages=['collectd', 'python-setuptools'], fatal=True)
+    apt_install(packages=['collectd'])
+    disable_collectd_fqdnlookup()
+    subprocess.check_call("apt install -f".split())
 
 
 def enable_graphite(hostname, port, unit_name):
